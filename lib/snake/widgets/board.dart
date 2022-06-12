@@ -18,8 +18,8 @@ class Board extends StatelessWidget {
 
     return GridView.count(
       crossAxisCount: columns,
-      crossAxisSpacing: 2,
-      mainAxisSpacing: 2,
+      crossAxisSpacing: 0,
+      mainAxisSpacing: 0,
       children: List.generate(
         columns * rows,
         (index) => Block(

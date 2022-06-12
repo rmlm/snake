@@ -9,8 +9,8 @@ import '../enums/game_state.dart';
 class GameProvider extends ChangeNotifier {
   final int _numberOfRows = 40;
   final int _numberOfColumns = 20;
-  final int _numberOfApples = 10;
-  final int _snakeInitialSize = 3;
+  final int _numberOfApples = 100;
+  final int _snakeInitialSize = 7;
 
   int _score = 0;
 
@@ -20,7 +20,7 @@ class GameProvider extends ChangeNotifier {
   Direction _currentSnakeDirection = Direction.right;
   GameState _currentGameState = GameState.toStart;
 
-  late final Timer _timer;
+  StreamSubscription? _timer;
 
   int get numberOfRows => _numberOfRows;
   int get numberOfColumns => _numberOfColumns;
@@ -41,19 +41,18 @@ class GameProvider extends ChangeNotifier {
     );
 
     _currentGameState = GameState.started;
-
-    _timer = Timer.periodic(
-      const Duration(milliseconds: 300),
-      (_) => _moveSnake(),
-    );
+    _currentSnakeDirection = Direction.right;
+    _timer = Stream.periodic(const Duration(milliseconds: 300)).listen((event) {
+      _moveSnake();
+    });
   }
 
   void pauseGame() {}
 
-  void _gameOver() {
-    _timer.cancel();
-
+  void _gameOver() async {
     _currentGameState = GameState.gameover;
+    await _timer!.cancel();
+
     notifyListeners();
   }
 
@@ -143,7 +142,9 @@ class GameProvider extends ChangeNotifier {
     }
   }
 
-  void _handleAppleColision() {
+  bool _handleAppleColision() {
+    bool eated = false;
+
     if (_applesPositions.contains(_snakeHead)) {
       final nextPosition = _getNextPositionOfSnake();
 
@@ -153,20 +154,27 @@ class GameProvider extends ChangeNotifier {
 
         _generateApples(number: 1);
         _score += 1;
+
+        eated = true;
       }
     }
+
+    return eated;
   }
 
   void _moveSnake() {
     int? positionToAdd = _getNextPositionOfSnake();
 
     if (_handleSnakeWallsColision()) return;
+    if (_handleAppleColision()) {
+      notifyListeners();
+      return;
+    }
 
     if (positionToAdd != null) {
       _snakePositions.removeAt(0);
       _snakePositions.add(positionToAdd);
 
-      _handleAppleColision();
       _handleSnakeBodyColision();
 
       notifyListeners();
